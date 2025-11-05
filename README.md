@@ -2,7 +2,7 @@
 
 **Never lose context again.** A persistent, queryable memory system for AI agents and development teams.
 
-[![CI](https://github.com/yourusername/memai/workflows/CI/badge.svg)](https://github.com/yourusername/memai/actions/workflows/ci.yml)
+[![CI](https://github.com/kraftyux/memai/workflows/CI/badge.svg)](https://github.com/kraftyux/memai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org/)
 [![npm version](https://img.shields.io/npm/v/memai.svg)](https://www.npmjs.com/package/memai)
