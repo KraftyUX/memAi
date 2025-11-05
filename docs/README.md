@@ -20,6 +20,26 @@ Welcome to the memAI documentation hub. This guide will help you find the inform
 3. **CLI Basics**: Learn the [CLI commands](CLI.md) for quick access
 4. **API Basics**: Explore the [API Reference](API.md) for programmatic usage
 
+### 🤖 For AI Agents
+
+If you're building autonomous AI agents or agentic systems, include the **[.memai-steering.md](../.memai-steering.md)** file in your project. This steering file provides:
+
+- Guidelines for when to record memories
+- Best practices for context preservation
+- Integration patterns for autonomous work
+- Session management strategies
+
+**Quick Setup**:
+```bash
+# Copy steering file to your project
+cp node_modules/memai/.memai-steering.md .
+
+# Or download directly
+curl -O https://raw.githubusercontent.com/kraftyux/memai/main/.memai-steering.md
+```
+
+The steering file ensures AI agents maintain context across sessions and build a comprehensive knowledge base automatically.
+
 ### Quick Start Checklist
 
 - [ ] Install memAI: `npm install memai`

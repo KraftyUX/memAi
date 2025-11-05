@@ -145,6 +145,28 @@ memai briefing 48
 
 ---
 
+## 🤖 AI Agent Integration
+
+**For AI agents and autonomous systems**: Include the `.memai-steering.md` file in your project root to enable automatic memory recording. This steering file provides guidelines for when and how to record memories during agentic work.
+
+```bash
+# Download the steering file
+curl -O https://raw.githubusercontent.com/kraftyux/memai/main/.memai-steering.md
+
+# Or copy from the repository
+cp node_modules/memai/.memai-steering.md .
+```
+
+The steering file ensures AI agents:
+- Record all significant decisions and implementations
+- Track issues and resolutions automatically
+- Maintain context across sessions
+- Build a queryable knowledge base
+
+See [AI Agent Integration Guide](.memai-steering.md) for complete details.
+
+---
+
 ## 📚 API Reference
 
 ### Record Memory
