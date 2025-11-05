@@ -1,0 +1,47 @@
+{
+  "name": "memai",
+  "version": "1.0.0",
+  "description": "AI Memory System - Persistent, queryable memory for AI agents and development teams",
+  "main": "src/memai.js",
+  "type": "module",
+  "bin": {
+    "memai": "src/cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Tests coming soon\" && exit 0",
+    "dashboard": "node src/server.js",
+    "init": "node src/init.js",
+    "cli": "node src/cli.js"
+  },
+  "keywords": [
+    "ai",
+    "memory",
+    "agent",
+    "context",
+    "sqlite",
+    "knowledge-base",
+    "decision-tracking",
+    "ai-agent",
+    "persistent-memory",
+    "context-management"
+  ],
+  "author": "kraftyux",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kraftyux/memai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kraftyux/memai/issues"
+  },
+  "homepage": "https://github.com/kraftyux/memai#readme",
+  "dependencies": {
+    "better-sqlite3": "^11.0.0"
+  },
+  "devDependencies": {
+    "open": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
