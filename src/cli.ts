@@ -24,13 +24,14 @@ function checkDatabase() {
 }
 
 // Helper to format timestamp
-function formatTime(timestamp) {
+function formatTime(timestamp: number | string | Date | undefined): string {
+  if (!timestamp) return 'Unknown Time';
   const date = new Date(timestamp);
   return date.toLocaleString();
 }
 
 // Helper to format age
-function formatAge(ms) {
+function formatAge(ms: number): string {
   const hours = ms / (1000 * 60 * 60);
   if (hours < 1) return `${Math.round(hours * 60)} minutes`;
   if (hours < 24) return `${hours.toFixed(1)} hours`;
@@ -54,7 +55,7 @@ const commands = {
     checkDatabase();
     const memai = new Memai(dbPath);
     const stats = memai.getStats();
-    
+
     console.log('\n📊 memAI Statistics\n');
     console.log(`Memories:     ${stats.totalMemories} total`);
     console.log(`Decisions:    ${stats.totalDecisions} tracked`);
@@ -63,7 +64,7 @@ const commands = {
       console.log(`Avg Resolve:  ${stats.avgResolveTimeHours} hours`);
     }
     console.log(`\nDatabase:     ${dbPath}`);
-    
+
     memai.close();
   },
 
@@ -72,9 +73,9 @@ const commands = {
     const limit = parseInt(args[1]) || 20;
     const memai = new Memai(dbPath);
     const memories = memai.getRecentMemories(limit);
-    
+
     console.log(`\n📝 Recent Memories (Last ${limit})\n`);
-    
+
     if (memories.length === 0) {
       console.log('No memories found.');
     } else {
@@ -89,7 +90,7 @@ const commands = {
         console.log();
       });
     }
-    
+
     memai.close();
   },
 
@@ -100,17 +101,19 @@ const commands = {
       console.error('❌ Please provide a search query');
       process.exit(1);
     }
-    
+
     const memai = new Memai(dbPath);
+    if (!memai.db) throw new Error('Database not initialized');
+
     const memories = memai.db.prepare(`
       SELECT * FROM memories 
       WHERE action LIKE ? OR context LIKE ? OR reasoning LIKE ? OR outcome LIKE ?
       ORDER BY timestamp DESC
       LIMIT 50
-    `).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
-    
+    `).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`) as any[];
+
     console.log(`\n🔍 Search Results for "${query}" (${memories.length} matches)\n`);
-    
+
     if (memories.length === 0) {
       console.log('No matches found.');
     } else {
@@ -123,7 +126,7 @@ const commands = {
         console.log();
       });
     }
-    
+
     memai.close();
   },
 
@@ -134,13 +137,13 @@ const commands = {
       console.error('❌ Please provide a phase name');
       process.exit(1);
     }
-    
+
     const memai = new Memai(dbPath);
     const memories = memai.getPhaseContext(phaseName);
-    
+
     console.log(`\n📂 Phase: ${phaseName}\n`);
     console.log(`Memories: ${memories.length}\n`);
-    
+
     if (memories.length === 0) {
       console.log('No memories found for this phase.');
     } else {
@@ -152,7 +155,7 @@ const commands = {
         console.log();
       });
     }
-    
+
     memai.close();
   },
 
@@ -160,12 +163,13 @@ const commands = {
     checkDatabase();
     const status = args[1] || 'active';
     const memai = new Memai(dbPath);
-    
-    let issues;
+
+    let issues: any[];
     if (status === 'active') {
       issues = memai.getActiveIssues();
       console.log(`\n🐛 Active Issues (${issues.length})\n`);
     } else if (status === 'resolved') {
+      if (!memai.db) throw new Error('Database not initialized');
       issues = memai.db.prepare(`
         SELECT * FROM issues 
         WHERE resolved_at IS NOT NULL 
@@ -174,10 +178,11 @@ const commands = {
       `).all();
       console.log(`\n✅ Recently Resolved Issues (${issues.length})\n`);
     } else {
+      if (!memai.db) throw new Error('Database not initialized');
       issues = memai.db.prepare('SELECT * FROM issues ORDER BY timestamp DESC').all();
       console.log(`\n🐛 All Issues (${issues.length})\n`);
     }
-    
+
     if (issues.length === 0) {
       console.log('No issues found.');
     } else {
@@ -193,7 +198,7 @@ const commands = {
         console.log();
       });
     }
-    
+
     memai.close();
   },
 
@@ -201,17 +206,17 @@ const commands = {
     checkDatabase();
     const format = args[1];
     const output = args[2];
-    
+
     if (!format || !output) {
       console.error('❌ Usage: memai export <format> <output>');
       console.error('   Formats: json, markdown');
       process.exit(1);
     }
-    
+
     const memai = new Memai(dbPath);
-    
+
     console.log(`\n📦 Exporting to ${format}...\n`);
-    
+
     if (format === 'json') {
       memai.exportToJson(output);
     } else if (format === 'markdown') {
@@ -220,7 +225,7 @@ const commands = {
       console.error(`❌ Unknown format: ${format}`);
       process.exit(1);
     }
-    
+
     memai.close();
   },
 
@@ -228,10 +233,10 @@ const commands = {
     checkDatabase();
     const hours = parseInt(args[1]) || 24;
     const memai = new Memai(dbPath);
-    
+
     const since = Date.now() - (hours * 60 * 60 * 1000);
     const briefing = memai.generateBriefing({ since, maxDepth: 50 });
-    
+
     console.log(`\n🧠 memAI Briefing (Last ${hours} hours)\n`);
     console.log('━'.repeat(60));
     console.log('\n📊 Summary');
@@ -240,42 +245,42 @@ const commands = {
     console.log(`  Current Phase: ${briefing.summary.currentPhase}`);
     console.log(`  Progress: ${briefing.summary.currentProgress}%`);
     console.log(`  Status: ${briefing.summary.currentStatus}`);
-    
+
     if (briefing.summary.pendingActions.length > 0) {
       console.log('\n📋 Pending Actions:');
-      briefing.summary.pendingActions.forEach(action => {
+      briefing.summary.pendingActions.forEach((action: string) => {
         console.log(`  • ${action}`);
       });
     }
-    
+
     if (briefing.summary.blockers.length > 0) {
       console.log('\n⛔ Blockers:');
-      briefing.summary.blockers.forEach(blocker => {
+      briefing.summary.blockers.forEach((blocker: string) => {
         console.log(`  • ${blocker}`);
       });
     }
-    
+
     if (briefing.activeIssues.length > 0) {
       console.log('\n🐛 Active Issues:');
-      briefing.activeIssues.slice(0, 5).forEach(i => {
+      briefing.activeIssues.slice(0, 5).forEach((i: any) => {
         console.log(`  [${i.severity}] ${i.description}`);
       });
     }
-    
+
     console.log('\n━'.repeat(60));
-    
+
     memai.close();
   },
 
   dashboard() {
     checkDatabase();
-    const port = args[1] || 3030;
+    const port = (args[1] || 3030).toString();
     console.log('\n🚀 Launching memAI Dashboard...\n');
     console.log(`Starting server on port ${port}...`);
-    
+
     // Set the port in process.argv for server.js to read
     process.argv[2] = port;
-    
+
     // Import and run server
     import('./server.js').catch(err => {
       console.error('❌ Failed to start dashboard:', err.message);
@@ -323,10 +328,10 @@ Documentation: https://github.com/yourusername/memai
 // Execute command
 if (!command || command === 'help' || command === '--help' || command === '-h') {
   commands.help();
-} else if (commands[command]) {
+} else if (command in commands) {
   try {
-    commands[command]();
-  } catch (error) {
+    (commands as any)[command]();
+  } catch (error: any) {
     console.error('❌ Error:', error.message);
     process.exit(1);
   }

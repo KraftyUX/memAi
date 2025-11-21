@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS memories (
     outcome TEXT,                            -- Result of the action
     metadata TEXT,                           -- JSON blob for extensibility
     tags TEXT,                               -- Comma-separated searchable tags
+    embedding BLOB,                          -- Vector embedding (JSON string or binary)
     parent_id INTEGER,                       -- Link to related memory
     FOREIGN KEY (parent_id) REFERENCES memories(id)
 );

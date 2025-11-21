@@ -1,0 +1,52 @@
+{
+    "gitlens.ai.model": "vscode",
+    "gitlens.ai.vscode.model": "copilot:gpt-4.1",
+    "workbench.iconTheme": "vscode-icons",
+    "chat.tools.terminal.autoApprove": {
+        "npm install": true,
+        "npm run verify:models": true,
+        "npm run make": true,
+        "npm run build": true,
+        "npm run dev": true,
+        "rm": true,
+        "npm cache": true,
+        "if": true,
+        "npx": true
+    },
+    "chat.emptyState.history.enabled": true,
+    "chat.tools.edits.autoApprove": {
+        "*": true
+    },
+    "chat.tools.global.autoApprove": true,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "chat.agent.maxRequests": 120,
+    "workbench.settings.applyToAllProfiles": [
+        "chat.agent.maxRequests"
+    ],
+    "window.newWindowProfile": "Default",
+    "chat.editor.wordWrap": "on",
+    "chat.notifyWindowOnConfirmation": false,
+    "chat.notifyWindowOnResponseReceived": false,
+    "chat.tools.terminal.autoReplyToPrompts": true,
+    "inlineChat.enableV2": true,
+    "inlineChat.notebookAgent": true,
+    "inlineChat.accessibleDiffView": "off",
+    "chat.editor.fontSize": 15,
+    "chat.fontSize": 14,
+    "inlineChat.hideOnRequest": true,
+    "github.copilot.enable": {
+        "*": true,
+        "plaintext": false,
+        "markdown": true,
+        "scminput": false
+    },
+    "explorer.confirmDragAndDrop": false,
+    "geminicodeassist.agentYoloMode": true,
+    "geminicodeassist.agentDebugMode": true,
+    "geminicodeassist.project": "promptin-476714",
+    "geminicodeassist.codeGenerationPaneViewEnabled": true,
+    "geminicodeassist.verboseLogging": true,
+    "geminicodeassist.chat.defaultCodeBlockDisplay": "Collapsed",
+    "workbench.colorTheme": "SynthWave '84",
+    "files.autoSave": "afterDelay"
+}

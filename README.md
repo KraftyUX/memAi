@@ -16,6 +16,7 @@ memAI is a **SQLite-based memory system** that enables AI agents to maintain per
 ### The Problem
 
 AI agents lose context between sessions. They forget:
+
 - What decisions were made and why
 - What problems were encountered
 - What patterns were discovered
@@ -24,9 +25,11 @@ AI agents lose context between sessions. They forget:
 ### The Solution
 
 Memai provides:
+
 - 🧠 **Persistent Memory** - SQLite database for reliable storage
+- 🔍 **Semantic Search** - Find memories by meaning using local vector embeddings
+- 🤖 **MCP Server** - Native integration with Claude Desktop and other MCP clients
 - 📊 **Beautiful Dashboard** - Visual exploration in your browser
-- 🔍 **Powerful Queries** - Full SQL for complex searches
 - 📱 **CLI Tools** - Quick access from terminal
 - 🎯 **Decision Tracking** - Record choices with rationale
 - 📈 **Progress Monitoring** - Track phases and milestones
@@ -41,6 +44,7 @@ Memai provides:
 
 ```bash
 npm install memai
+npm run build # Required for TypeScript compilation
 ```
 
 ### Initialize
@@ -51,12 +55,12 @@ npx memai init
 
 ### Record Your First Memory
 
-```javascript
+```typescript
 import Memai from 'memai';
 
 const memai = new Memai();
 
-memai.record({
+await memai.record({
   category: 'implementation',
   phase: 'Setup',
   action: 'Initialized project with Memai',
@@ -77,6 +81,38 @@ Opens at `http://localhost:3030` - UI for exploring memories!
 
 ---
 
+## 🤖 Model Context Protocol (MCP)
+
+memAI includes a built-in MCP server, allowing AI agents (like Claude) to directly interact with your memory database.
+
+### Configuration (Claude Desktop)
+
+Add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "memai": {
+      "command": "node",
+      "args": ["/path/to/memai/dist/src/mcp-server.js"],
+      "env": {
+        "MEMAI_DB_PATH": "/path/to/your/.memai/memory.db"
+      }
+    }
+  }
+}
+```
+
+### Available Tools
+
+- `record_memory`: Save context, actions, and outcomes.
+- `record_decision`: Track architectural choices.
+- `search_memories`: Semantic search for relevant context.
+- `create_checkpoint`: Mark project milestones.
+- `get_briefing`: Get a summary of recent activity.
+
+---
+
 ## 📖 Core Concepts
 
 ### Categories
@@ -91,15 +127,16 @@ Opens at `http://localhost:3030` - UI for exploring memories!
 
 ### Memory Structure
 
-```javascript
-{
-  category: 'decision',
-  phase: 'Architecture Design',
-  action: 'Chose PostgreSQL over MongoDB',
-  context: 'Need relational data with ACID guarantees',
-  reasoning: 'Complex queries, data integrity, mature ecosystem',
-  outcome: 'Successful implementation, no regrets',
-  tags: 'database,architecture,postgresql'
+```typescript
+interface Memory {
+  category: 'decision' | 'implementation' | 'issue' | ...;
+  phase?: string;
+  action: string;
+  context?: string;
+  reasoning?: string;
+  outcome?: string;
+  tags?: string;
+  embedding?: string; // Vector embedding for semantic search
 }
 ```
 
@@ -108,7 +145,7 @@ Opens at `http://localhost:3030` - UI for exploring memories!
 ## 🎨 Dashboard Features
 
 - 📊 Real-time statistics
-- 🔍 Full-text search
+- 🔍 Semantic & Keyword search
 - 🏷️ Multi-filter system
 - 📑 View switcher (Memories / Decisions / Issues)
 - 📄 Pagination (20 per page)
@@ -158,6 +195,7 @@ cp node_modules/memai/.memai-steering.md .
 ```
 
 The steering file ensures AI agents:
+
 - Record all significant decisions and implementations
 - Track issues and resolutions automatically
 - Maintain context across sessions
@@ -360,4 +398,4 @@ If memAI helps your project, consider giving it a ⭐️ on GitHub!
 
 ---
 
-**Made with ❤️ in the EU, for the AI community**
+### Made with ❤️ in the EU, for the AI community

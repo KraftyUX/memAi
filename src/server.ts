@@ -8,22 +8,22 @@
  * Default port: 3030
  */
 
-import { createServer } from 'http';
+import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname, extname } from 'path';
-import { fileURLToPath } from 'url';
 import Memai from './memai.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Parse port from command line, ensuring it's a valid number
 const portArg = process.argv[2];
-const PORT = (portArg && !isNaN(portArg)) ? parseInt(portArg) : 3030;
-const DASHBOARD_PATH = join(__dirname, '..', 'dashboard', 'index.html');
+const PORT = (portArg && !isNaN(parseInt(portArg))) ? parseInt(portArg) : 3030;
+
+// Use process.cwd() to find the dashboard directory relative to where the script is run, 
+// or assume a standard structure if installed as a package.
+// Since we are in src/, dashboard is in ../dashboard
+const DASHBOARD_PATH = join(process.cwd(), 'dashboard', 'index.html');
 const DB_PATH = process.env.MEMAI_DB_PATH || join(process.cwd(), '.memai', 'memory.db');
 
-const MIME_TYPES = {
+const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
   '.css': 'text/css',
@@ -33,16 +33,16 @@ const MIME_TYPES = {
 };
 
 // Initialize memAI
-let memai;
+let memai: Memai;
 try {
   memai = new Memai(DB_PATH);
-} catch (error) {
+} catch (error: any) {
   console.error('❌ Failed to initialize memAI:', error.message);
   console.error('   Run "memai init" first to create the database');
   process.exit(1);
 }
 
-const server = createServer((req, res) => {
+const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -55,7 +55,7 @@ const server = createServer((req, res) => {
   }
 
   // API endpoints
-  if (req.url.startsWith('/api/')) {
+  if (req.url && req.url.startsWith('/api/')) {
     handleApiRequest(req, res);
     return;
   }
@@ -68,8 +68,8 @@ const server = createServer((req, res) => {
   }
 
   // Parse URL - serve dashboard for root, otherwise look for static files
-  let filePath;
-  if (req.url === '/') {
+  let filePath: string;
+  if (req.url === '/' || !req.url) {
     filePath = DASHBOARD_PATH;
   } else {
     // Remove leading slash and resolve relative to dashboard directory
@@ -80,7 +80,7 @@ const server = createServer((req, res) => {
   // Security: prevent directory traversal
   const dashboardDir = dirname(DASHBOARD_PATH);
   const resolvedPath = filePath;
-  if (!resolvedPath.startsWith(dashboardDir) && !resolvedPath.startsWith(__dirname)) {
+  if (!resolvedPath.startsWith(dashboardDir)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
@@ -101,13 +101,13 @@ const server = createServer((req, res) => {
     const content = readFileSync(filePath);
     res.writeHead(200, { 'Content-Type': contentType });
     res.end(content);
-  } catch (error) {
+  } catch (error: any) {
     res.writeHead(500);
     res.end('Internal server error: ' + error.message);
   }
 });
 
-function handleApiRequest(req, res) {
+function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
   res.setHeader('Content-Type', 'application/json');
 
   try {
@@ -139,14 +139,13 @@ function handleApiRequest(req, res) {
       res.writeHead(404);
       res.end(JSON.stringify({ error: 'API endpoint not found' }));
     }
-  } catch (error) {
+  } catch (error: any) {
     res.writeHead(500);
     res.end(JSON.stringify({ error: error.message }));
   }
 }
 
 server.listen(PORT, () => {
-  const dashboardDir = dirname(DASHBOARD_PATH);
   console.log('');
   console.log('🧠 memAI Dashboard Server');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -175,7 +174,7 @@ server.listen(PORT, () => {
     });
 });
 
-server.on('error', (error) => {
+server.on('error', (error: any) => {
   if (error.code === 'EADDRINUSE') {
     console.error(`❌ Port ${PORT} is already in use`);
     console.error(`   Try a different port: npx memai dashboard 3031`);

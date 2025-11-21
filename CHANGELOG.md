@@ -5,19 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2025-11-21
 
 ### Added
 
+- **TypeScript Support**
+  - Full codebase migration to TypeScript for better type safety and developer experience.
+  - `npm run build` command to compile the project.
+  - Type definitions for all core entities (`Memory`, `Decision`, `Issue`, etc.).
+
+- **Model Context Protocol (MCP) Server**
+  - Built-in MCP server for integration with Claude Desktop and other MCP clients.
+  - Tools: `record_memory`, `record_decision`, `search_memories`, `create_checkpoint`, `get_briefing`.
+
+- **Semantic Search**
+  - Local vector embeddings using `@xenova/transformers`.
+  - Semantic search capabilities to find memories by meaning, not just keywords.
+  - `embedding` column added to `memories` table.
+
 ### Changed
 
-### Deprecated
-
-### Removed
+- **Project Structure**
+  - Source code moved to `src/*.ts` and compiled to `dist/`.
+  - `package.json` scripts updated to use `dist/` output.
+  - `import.meta` usage replaced with CJS-compatible alternatives where necessary.
 
 ### Fixed
 
-### Security
+- Corrupted `package.json` file restored.
+- `recordDecision` and `recordFileChange` methods fixed and typed.
+- `cli.ts` structural corruption resolved.
 
 ## [1.0.0] - 2025-11-05
 
@@ -148,5 +165,4 @@ npx memai dashboard
 
 ---
 
-[Unreleased]: https://github.com/kraftyux/memai/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/kraftyux/memai/releases/tag/v1.0.0

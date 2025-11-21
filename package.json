@@ -1,22 +1,23 @@
 {
   "name": "memai",
-  "version": "1.0.0",
-  "description": "AI Memory System - Persistent, queryable memory for AI agents and development teams",
-  "main": "src/memai.js",
+  "version": "1.1.0",
+  "description": "AI Memory System",
+  "main": "dist/src/memai.js",
   "type": "module",
   "bin": {
-    "memai": "src/cli.js"
+    "memai": "dist/src/cli.js",
+    "mcp-server": "dist/src/mcp-server.js"
   },
   "scripts": {
-    "test": "echo \"Tests coming soon\" && exit 0",
-    "dashboard": "node src/server.js",
-    "init": "node src/init.js",
-    "cli": "node src/cli.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dashboard": "node dist/src/server.js",
+    "init": "node dist/src/init.js",
+    "build": "tsc",
+    "start": "node dist/src/server.js",
+    "dev": "ts-node src/server.ts"
   },
   "keywords": [
-    "ai",
     "memory",
-    "agent",
     "context",
     "sqlite",
     "knowledge-base",
@@ -36,10 +37,17 @@
   },
   "homepage": "https://github.com/kraftyux/memai#readme",
   "dependencies": {
-    "better-sqlite3": "^11.0.0"
+    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@xenova/transformers": "^2.17.2",
+    "better-sqlite3": "^11.0.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "open": "^10.0.0"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.10.1",
+    "open": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=16.0.0"
