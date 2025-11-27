@@ -42,9 +42,19 @@ Memai provides:
 
 ### Installation
 
+**Option 1: Use in your project (NPM)**
+
 ```bash
 npm install memai
-npm run build # Required for TypeScript compilation
+```
+
+**Option 2: Run from source (GitHub)**
+
+```bash
+git clone https://github.com/kraftyux/memai.git
+cd memai
+npm install
+npm run build
 ```
 
 ### Initialize
@@ -110,6 +120,14 @@ Add this to your `claude_desktop_config.json`:
 - `search_memories`: Semantic search for relevant context.
 - `create_checkpoint`: Mark project milestones.
 - `get_briefing`: Get a summary of recent activity.
+- `start_session`: **(Recommended)** Start a session with context and instructions.
+- `finish_session`: **(Recommended)** End session, checkpoint, and export report.
+
+### Streamlined Agent Workflow
+
+1. **Start**: Agent calls `start_session` to get context.
+2. **Work**: Agent records decisions and memories.
+3. **Finish**: Agent calls `finish_session` to save progress.
 
 ---
 

@@ -27,37 +27,47 @@ We are committed to providing a welcoming and inclusive environment for all cont
 1. **Fork the repository** on GitHub
 
 2. **Clone your fork**:
+
    ```bash
    git clone https://github.com/kraftyux/memai.git
    cd memai
    ```
 
 3. **Add upstream remote**:
+
    ```bash
    git remote add upstream https://github.com/kraftyux/memai.git
    ```
 
 4. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
-5. **Initialize the database**:
+5. **Build the project**:
+
+   ```bash
+   npm run build
+   ```
+
+6. **Initialize the database**:
+
    ```bash
    npm run init
    ```
 
-6. **Test the CLI**:
+7. **Test the CLI**:
+
    ```bash
    npm run cli -- stats
    ```
 
-7. **Launch the dashboard**:
+8. **Launch the dashboard**:
+
    ```bash
    npm run dashboard
    ```
-
-## Development Workflow
 
 ### Branching Strategy
 
@@ -93,6 +103,7 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 ```
 
 **Types**:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -102,6 +113,7 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 - `chore`: Maintenance tasks, dependency updates
 
 **Examples**:
+
 ```
 feat(api): add method to export memories as JSON
 fix(dashboard): resolve pagination issue on mobile
@@ -112,6 +124,7 @@ refactor(core): simplify memory recording logic
 ### Submitting Changes
 
 1. **Push to your fork**:
+
    ```bash
    git push origin feat/your-feature-name
    ```

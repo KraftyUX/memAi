@@ -154,6 +154,97 @@ const TOOLS: Record<string, ToolDefinition> = {
                 ],
             };
         },
+    },
+
+    start_session: {
+        name: "start_session",
+        description: "Start a new development session. Returns context, active issues, and instructions.",
+        schema: z.object({
+            goal: z.string().optional().describe("The main goal for this session"),
+        }),
+        handler: async (args: any) => {
+            const since = Date.now() - (24 * 60 * 60 * 1000);
+            const briefing = memai.generateBriefing({ since, maxDepth: 50 });
+
+            const summary = [
+                `# 🚀 Session Started`,
+                `Goal: ${args.goal || 'General Development'}`,
+                ``,
+                `## 📊 Current Status`,
+                `- Phase: ${briefing.summary.currentPhase}`,
+                `- Progress: ${briefing.summary.currentProgress}%`,
+                `- Active Issues: ${briefing.summary.activeIssuesCount}`,
+                ``,
+                `## 📋 Pending Actions`,
+                ...(briefing.summary.pendingActions.length ? briefing.summary.pendingActions.map((a: string) => `- ${a}`) : ['- None']),
+                ``,
+                `## ⛔ Blockers`,
+                ...(briefing.summary.blockers.length ? briefing.summary.blockers.map((b: string) => `- ${b}`) : ['- None']),
+                ``,
+                `## 🧠 Agent Instructions`,
+                `1. Record every significant decision using 'record_decision'.`,
+                `2. Record task completions using 'record_memory' (category: 'implementation').`,
+                `3. If you encounter a bug, use 'record_memory' (category: 'issue').`,
+                `4. When finished, call 'finish_session'.`
+            ].join('\n');
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: summary,
+                    },
+                ],
+            };
+        },
+    },
+
+    finish_session: {
+        name: "finish_session",
+        description: "End the current session, create a checkpoint, and export a report.",
+        schema: z.object({
+            phase: z.string().describe("Current phase name"),
+            status: z.enum(['started', 'in-progress', 'completed', 'blocked']).describe("Current status"),
+            progressPercent: z.number().min(0).max(100).describe("Progress percentage (0-100)"),
+            nextSteps: z.array(z.string()).describe("List of next steps"),
+            blockers: z.array(z.string()).optional().describe("List of active blockers"),
+        }),
+        handler: async (args: any) => {
+            // 1. Create Checkpoint
+            const checkpointId = memai.createCheckpoint({
+                phase: args.phase,
+                status: args.status,
+                progressPercent: args.progressPercent,
+                pendingActions: args.nextSteps,
+                blockers: args.blockers || []
+            });
+
+            // 2. Export Report
+            const date = new Date().toISOString().split('T')[0];
+            const reportPath = join(process.cwd(), 'docs', 'sessions', `${date}-session-report.md`);
+
+            // Ensure docs/sessions exists
+            try {
+                const fs = await import('fs');
+                const path = await import('path');
+                const sessionDir = path.join(process.cwd(), 'docs', 'sessions');
+                if (!fs.existsSync(sessionDir)) {
+                    fs.mkdirSync(sessionDir, { recursive: true });
+                }
+                memai.exportToMarkdown(reportPath);
+            } catch (e) {
+                console.error('Failed to export report:', e);
+            }
+
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `✅ Session finished.\n- Checkpoint created (ID: ${checkpointId})\n- Report exported to: ${reportPath}\n\nGood job!`,
+                    },
+                ],
+            };
+        },
     }
 };
 
