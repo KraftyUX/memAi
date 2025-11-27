@@ -106,7 +106,9 @@ class Memai {
     if (!this.db) throw new Error('Database not initialized');
 
     // Load and execute schema
-    const schemaPath = join(process.cwd(), 'src', 'schema.sql');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const schemaPath = join(__dirname, 'schema.sql');
     const schema = readFileSync(schemaPath, 'utf-8');
     this.db.exec(schema);
 

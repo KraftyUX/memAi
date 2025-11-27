@@ -12,7 +12,8 @@
     "test": "echo \"No test specified\" && exit 0",
     "dashboard": "node dist/src/server.js",
     "init": "node dist/src/init.js",
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').copyFileSync('src/schema.sql', 'dist/src/schema.sql')\"",
+    "prepare": "npm run build",
     "start": "node dist/src/server.js",
     "dev": "ts-node src/server.ts"
   },
