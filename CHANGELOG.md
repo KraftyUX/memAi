@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-14
+
+### Added
+
+- **Memory Persistence Nudges**
+  - Session tracker for monitoring AI agent session activity
+  - Nudge handler for prompting memory persistence at optimal times
+  - Configurable nudge thresholds and timing
+
+- **Testing Infrastructure**
+  - Vitest configuration for unit and property-based testing
+  - Test suites for MCP server, nudge handler, and session tracker
+  - Fast-check integration for property-based testing
+
+### Changed
+
+- Updated MCP server with improved tool handling
+- Enhanced schema with session tracking support
+
 ## [1.1.0] - 2025-11-21
 
 ### Added

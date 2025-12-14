@@ -226,6 +226,18 @@ FROM test_results tr
 GROUP BY tr.test_suite
 ORDER BY avg_pass_rate DESC;
 
+-- Session tracking for memory health monitoring
+CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    started_at INTEGER NOT NULL,
+    tool_call_count INTEGER DEFAULT 0,
+    memory_count INTEGER DEFAULT 0,
+    last_recording_at INTEGER,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at);
+
 -- Initialize metadata table
 CREATE TABLE IF NOT EXISTS aimem_metadata (
     key TEXT PRIMARY KEY,

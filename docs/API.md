@@ -6,6 +6,7 @@ Complete reference for the Memai class API. This document covers all public meth
 
 - [Installation](#installation)
 - [Initialization](#initialization)
+- [MCP Server Tools](#mcp-server-tools)
 - [Recording Methods](#recording-methods)
 - [Querying Methods](#querying-methods)
 - [Management Methods](#management-methods)
@@ -16,6 +17,128 @@ Complete reference for the Memai class API. This document covers all public meth
 
 ```bash
 npm install memai
+```
+
+## MCP Server Tools
+
+The MCP (Model Context Protocol) server provides tools for AI agents to interact with memAI. These tools include session management, memory recording, and health monitoring.
+
+### Session Tracking
+
+The MCP server tracks session activity to monitor memory recording health:
+
+- **Tool call count**: Incremented on every MCP tool invocation
+- **Memory count**: Incremented when `record_memory` or `record_decision` is called
+- **Last recording timestamp**: Updated when memories are recorded
+- **Session persistence**: Session state is persisted to the database and restored on server restart (if less than 1 hour old)
+
+### `start_session`
+
+Initializes a new session with context and instructions.
+
+**Parameters:**
+
+- `goal` (string, optional): The goal for this session
+
+**Returns:** Object containing:
+
+- `briefing`: Recent activity summary
+- `healthMetrics`: Session health metrics (sessionDuration, toolCallCount, memoryCount, healthStatus)
+
+**Example:**
+
+```json
+{"tool": "start_session", "args": {"goal": "Implement user authentication"}}
+```
+
+### `finish_session`
+
+Ends the current session, creates a checkpoint, and exports a report.
+
+**Parameters:**
+
+- `phase` (string, required): Current phase name
+- `status` (string, required): Session status (e.g., 'completed', 'in-progress')
+- `progressPercent` (number, optional): Progress percentage (0-100)
+- `nextSteps` (array, optional): List of next steps
+
+**Returns:** Session summary with checkpoint ID
+
+### `memory_pulse`
+
+Checks memory recording health and provides suggestions when recording has lapsed.
+
+**Parameters:** None
+
+**Returns:** Object containing:
+
+- `sessionDuration` (string): Human-readable duration (e.g., "23 minutes")
+- `memoryCount` (number): Number of memories recorded this session
+- `toolCallCount` (number): Number of tool calls this session
+- `timeSinceLastRecording` (string | null): Time since last recording (e.g., "5 minutes")
+- `healthStatus` (string): One of 'healthy', 'warning', or 'critical'
+- `suggestions` (array): Category suggestions when status is warning or critical
+- `guidance` (string | null): Specific guidance when status is critical
+
+**Health Status Thresholds:**
+
+- `healthy`: Recorded within 5 minutes OR memoryRatio > 0.1
+- `warning`: 5-10 minutes since recording OR >5 tool calls with 0 memories
+- `critical`: >10 minutes since recording OR >10 tool calls with 0 memories
+
+**Example:**
+
+```json
+{"tool": "memory_pulse", "args": {}}
+```
+
+**Response Example:**
+
+```json
+{
+  "sessionDuration": "23 minutes",
+  "memoryCount": 3,
+  "toolCallCount": 15,
+  "timeSinceLastRecording": "8 minutes",
+  "healthStatus": "warning",
+  "suggestions": ["checkpoint", "decision", "implementation"],
+  "guidance": null
+}
+```
+
+### `get_briefing`
+
+Gets a summary of recent activity with session metrics.
+
+**Parameters:**
+
+- `hours` (number, optional): Hours of history to include (default: 24)
+
+**Returns:** Object containing:
+
+- `briefing`: Recent activity summary
+- `sessionMetrics`: Current session duration, tool call count, memory count
+- `warning` (optional): Warning message when memoryCount=0 and toolCallCount>5
+
+### Automatic Nudges
+
+The MCP server automatically appends nudges to read-only tool responses (`search_memories`, `get_briefing`) when memory recording has lapsed:
+
+**Nudge Triggers:**
+
+- More than 10 minutes since last recording
+- More than 10 tool calls with zero memories recorded
+
+**Nudge Suppression:**
+
+- Nudges are suppressed if a memory was recorded within the last 5 minutes
+
+**Nudge Format:**
+
+Nudges appear as brief suggestions at the end of tool responses:
+
+```
+💡 Tip: You haven't recorded any memories in 15 minutes. Consider logging your recent progress.
 ```
 
 ## Initialization

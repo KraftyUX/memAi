@@ -1,6 +1,6 @@
 {
   "name": "memai",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AI Memory System",
   "main": "dist/src/memai.js",
   "type": "module",
@@ -9,7 +9,7 @@
     "mcp-server": "dist/src/mcp-server.js"
   },
   "scripts": {
-    "test": "echo \"No test specified\" && exit 0",
+    "test": "vitest --run",
     "dashboard": "node dist/src/server.js",
     "init": "node dist/src/init.js",
     "build": "tsc && node -e \"require('fs').copyFileSync('src/schema.sql', 'dist/src/schema.sql')\"",
@@ -46,9 +46,12 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^4.0.15",
+    "fast-check": "^4.4.0",
     "open": "^10.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
   },
   "engines": {
     "node": ">=16.0.0"

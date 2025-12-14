@@ -119,15 +119,27 @@ Add this to your `claude_desktop_config.json`:
 - `record_decision`: Track architectural choices.
 - `search_memories`: Semantic search for relevant context.
 - `create_checkpoint`: Mark project milestones.
-- `get_briefing`: Get a summary of recent activity.
+- `get_briefing`: Get a summary of recent activity with session metrics.
 - `start_session`: **(Recommended)** Start a session with context and instructions.
 - `finish_session`: **(Recommended)** End session, checkpoint, and export report.
+- `memory_pulse`: Check memory recording health and get suggestions.
 
 ### Streamlined Agent Workflow
 
-1. **Start**: Agent calls `start_session` to get context.
-2. **Work**: Agent records decisions and memories.
-3. **Finish**: Agent calls `finish_session` to save progress.
+1. **Start**: Agent calls `start_session` to get context and health metrics.
+2. **Work**: Agent records decisions and memories. The system tracks activity and provides nudges when recording lapses.
+3. **Check**: Agent can call `memory_pulse` to check recording health status (healthy/warning/critical).
+4. **Finish**: Agent calls `finish_session` to save progress.
+
+### Memory Health & Nudges
+
+The MCP server automatically tracks session activity and provides contextual nudges when memory recording has lapsed:
+
+- **Automatic nudges** appear on read-only tools (`search_memories`, `get_briefing`) when:
+  - More than 10 minutes have passed since the last recording
+  - More than 10 tool calls have been made with zero memories recorded
+- **Nudges are suppressed** if a memory was recorded within the last 5 minutes
+- **Health status** is reported as `healthy`, `warning`, or `critical` based on recording activity
 
 ---
 
@@ -202,14 +214,14 @@ memai briefing 48
 
 ## 🤖 AI Agent Integration
 
-**For AI agents and autonomous systems**: Include the `.memai-steering.md` file in your project root, or specified steering file location within the workflow to enable automatic memory recording. This steering file provides guidelines for when and how to record memories during agentic work and it can be adjusted and optimized further.
+**For AI agents and autonomous systems**: Include the `memai.md` steering file in your project root, or specified steering file location within the workflow to enable automatic memory recording. This steering file provides guidelines for when and how to record memories during agentic work and it can be adjusted and optimized further.
 
 ```bash
 # Download the steering file
-curl -O https://raw.githubusercontent.com/kraftyux/memai/main/.memai-steering.md
+curl -O https://raw.githubusercontent.com/kraftyux/memai/main/memai.md
 
 # Or copy from the repository
-cp node_modules/memai/.memai-steering.md .
+cp node_modules/memai/memai.md .
 ```
 
 The steering file ensures AI agents:
@@ -218,8 +230,18 @@ The steering file ensures AI agents:
 - Track issues and resolutions automatically
 - Maintain context across sessions
 - Build a queryable knowledge base
+- Respond to memory health nudges when recording lapses
 
-See [AI Agent Integration Guide](.memai-steering.md) for complete details.
+### Memory Health Monitoring
+
+The MCP server tracks agent activity and provides proactive nudges:
+
+- **Session tracking**: Monitors tool calls, memory recordings, and time since last recording
+- **Health metrics**: Available via `get_briefing` and `memory_pulse` tools
+- **Automatic nudges**: Appended to read-only tool responses when recording has lapsed
+- **Health status**: `healthy` (active recording), `warning` (recording lapse detected), `critical` (significant lapse)
+
+See [AI Agent Integration Guide](memai.md) for complete details.
 
 ---
 

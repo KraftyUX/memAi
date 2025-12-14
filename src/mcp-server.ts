@@ -14,10 +14,39 @@ import {
 import { z } from "zod";
 import Memai from "./memai.js";
 import { join } from "path";
+import { SessionTracker, HealthMetrics } from "./session-tracker.js";
+import { NudgeHandler } from "./nudge-handler.js";
+import Database from "better-sqlite3";
 
 // Initialize memAI
 const dbPath = process.env.MEMAI_DB_PATH || join(process.cwd(), '.memai', 'memory.db');
 const memai = new Memai(dbPath);
+
+// Initialize SessionTracker singleton
+const sessionDb = new Database(dbPath);
+const sessionTracker = new SessionTracker(undefined, undefined, sessionDb);
+
+// Initialize NudgeHandler with session tracker
+const nudgeHandler = new NudgeHandler(sessionTracker);
+
+// Attempt to restore previous session on startup
+sessionTracker.restore();
+
+/**
+ * Format milliseconds as human-readable duration
+ */
+function formatDurationMs(ms: number): string {
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 60) {
+        return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+        return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    }
+    return `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+}
 
 // Create MCP Server
 const server = new Server(
@@ -102,7 +131,7 @@ const TOOLS: Record<string, ToolDefinition> = {
         }),
         handler: async (args: any) => {
             const memories = memai.getPhaseContext(args.phase);
-            return {
+            const response = {
                 content: [
                     {
                         type: "text",
@@ -110,6 +139,8 @@ const TOOLS: Record<string, ToolDefinition> = {
                     },
                 ],
             };
+            // Wrap response with nudge if conditions are met (Requirements 3.1, 3.2, 3.3)
+            return nudgeHandler.wrapResponse(response);
         },
     },
 
@@ -145,14 +176,37 @@ const TOOLS: Record<string, ToolDefinition> = {
         handler: async (args: any) => {
             const since = Date.now() - (args.hours * 60 * 60 * 1000);
             const briefing = memai.generateBriefing({ since, maxDepth: 50 });
-            return {
+            
+            // Get session health metrics (Requirements 2.1)
+            const metrics = sessionTracker.getHealthMetrics();
+            
+            // Build response with session metrics
+            const briefingData: any = {
+                ...briefing,
+                sessionHealth: {
+                    sessionDuration: formatDurationMs(metrics.sessionDurationMs),
+                    toolCallCount: metrics.toolCallCount,
+                    memoryCount: metrics.memoryCount,
+                    healthStatus: metrics.status,
+                },
+            };
+            
+            // Add warning when memoryCount=0 and toolCallCount>5 (Requirements 2.2)
+            if (metrics.memoryCount === 0 && metrics.toolCallCount > 5) {
+                briefingData.sessionHealth.warning = `⚠️ No memories recorded despite ${metrics.toolCallCount} tool calls. Consider recording your progress and decisions.`;
+            }
+            
+            const response = {
                 content: [
                     {
                         type: "text",
-                        text: JSON.stringify(briefing, null, 2),
+                        text: JSON.stringify(briefingData, null, 2),
                     },
                 ],
             };
+            
+            // Wrap response with nudge if conditions are met (Requirements 3.1, 3.2, 3.3)
+            return nudgeHandler.wrapResponse(response);
         },
     },
 
@@ -163,10 +217,18 @@ const TOOLS: Record<string, ToolDefinition> = {
             goal: z.string().optional().describe("The main goal for this session"),
         }),
         handler: async (args: any) => {
+            // Get health metrics from any prior session activity before initializing (Requirements 2.3)
+            const priorMetrics = sessionTracker.getHealthMetrics();
+            const hadPriorActivity = priorMetrics.toolCallCount > 0 || priorMetrics.memoryCount > 0;
+            
+            // Initialize fresh session (Requirements 1.1)
+            sessionTracker.initialize();
+            sessionTracker.persist();
+            
             const since = Date.now() - (24 * 60 * 60 * 1000);
             const briefing = memai.generateBriefing({ since, maxDepth: 50 });
 
-            const summary = [
+            const summaryParts = [
                 `# 🚀 Session Started`,
                 `Goal: ${args.goal || 'General Development'}`,
                 ``,
@@ -174,6 +236,21 @@ const TOOLS: Record<string, ToolDefinition> = {
                 `- Phase: ${briefing.summary.currentPhase}`,
                 `- Progress: ${briefing.summary.currentProgress}%`,
                 `- Active Issues: ${briefing.summary.activeIssuesCount}`,
+            ];
+            
+            // Include prior session health metrics if there was activity (Requirements 2.3)
+            if (hadPriorActivity) {
+                summaryParts.push(
+                    ``,
+                    `## 📈 Prior Session Health`,
+                    `- Duration: ${formatDurationMs(priorMetrics.sessionDurationMs)}`,
+                    `- Tool Calls: ${priorMetrics.toolCallCount}`,
+                    `- Memories Recorded: ${priorMetrics.memoryCount}`,
+                    `- Health Status: ${priorMetrics.status}`
+                );
+            }
+            
+            summaryParts.push(
                 ``,
                 `## 📋 Pending Actions`,
                 ...(briefing.summary.pendingActions.length ? briefing.summary.pendingActions.map((a: string) => `- ${a}`) : ['- None']),
@@ -186,13 +263,69 @@ const TOOLS: Record<string, ToolDefinition> = {
                 `2. Record task completions using 'record_memory' (category: 'implementation').`,
                 `3. If you encounter a bug, use 'record_memory' (category: 'issue').`,
                 `4. When finished, call 'finish_session'.`
-            ].join('\n');
+            );
 
             return {
                 content: [
                     {
                         type: "text",
-                        text: summary,
+                        text: summaryParts.join('\n'),
+                    },
+                ],
+            };
+        },
+    },
+
+    memory_pulse: {
+        name: "memory_pulse",
+        description: "Check your memory recording health. Returns session metrics and suggestions when recording has lapsed.",
+        schema: z.object({}),
+        handler: async (_args: any) => {
+            const metrics = sessionTracker.getHealthMetrics();
+            
+            // Build response with required fields (Requirements 4.1, 4.3)
+            const response: {
+                sessionDuration: string;
+                memoryCount: number;
+                toolCallCount: number;
+                timeSinceLastRecording: string | null;
+                healthStatus: 'healthy' | 'warning' | 'critical';
+                suggestions?: string[];
+                guidance?: string;
+            } = {
+                sessionDuration: formatDurationMs(metrics.sessionDurationMs),
+                memoryCount: metrics.memoryCount,
+                toolCallCount: metrics.toolCallCount,
+                timeSinceLastRecording: metrics.timeSinceLastRecording !== null 
+                    ? formatDurationMs(metrics.timeSinceLastRecording)
+                    : null,
+                healthStatus: metrics.status,
+            };
+            
+            // Include suggestions when status is warning or critical (Requirements 4.2)
+            if (metrics.status === 'warning' || metrics.status === 'critical') {
+                response.suggestions = [
+                    'decision - Record any technical or architectural decisions made',
+                    'implementation - Log progress on current tasks',
+                    'issue - Document any bugs or problems encountered',
+                    'insight - Capture learnings or observations',
+                ];
+            }
+            
+            // Include guidance when status is critical (Requirements 4.4)
+            if (metrics.status === 'critical') {
+                response.guidance = '⚠️ Memory recording has lapsed significantly. Consider:\n' +
+                    '1. Recording any decisions made during this session\n' +
+                    '2. Logging implementation progress on current tasks\n' +
+                    '3. Documenting any issues or blockers encountered\n' +
+                    '4. Creating a checkpoint if switching contexts';
+            }
+            
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(response, null, 2),
                     },
                 ],
             };
@@ -210,6 +343,9 @@ const TOOLS: Record<string, ToolDefinition> = {
             blockers: z.array(z.string()).optional().describe("List of active blockers"),
         }),
         handler: async (args: any) => {
+            // Get final session metrics before reset
+            const finalMetrics = sessionTracker.getHealthMetrics();
+            
             // 1. Create Checkpoint
             const checkpointId = memai.createCheckpoint({
                 phase: args.phase,
@@ -236,11 +372,15 @@ const TOOLS: Record<string, ToolDefinition> = {
                 console.error('Failed to export report:', e);
             }
 
+            // 3. Reset session tracker (Requirements 1.4)
+            sessionTracker.reset();
+            sessionTracker.persist();
+
             return {
                 content: [
                     {
                         type: "text",
-                        text: `✅ Session finished.\n- Checkpoint created (ID: ${checkpointId})\n- Report exported to: ${reportPath}\n\nGood job!`,
+                        text: `✅ Session finished.\n- Checkpoint created (ID: ${checkpointId})\n- Report exported to: ${reportPath}\n- Session Stats: ${finalMetrics.toolCallCount} tool calls, ${finalMetrics.memoryCount} memories recorded\n\nGood job!`,
                     },
                 ],
             };
@@ -266,6 +406,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (!tool) {
         throw new Error("Tool not found");
     }
+    
+    // Increment tool call counter for session tracking (Requirements 1.2)
+    sessionTracker.incrementToolCall();
+    
+    // Track memory recordings (Requirements 1.3)
+    if (request.params.name === 'record_memory' || request.params.name === 'record_decision') {
+        sessionTracker.recordMemory();
+    }
+    
+    // Persist session state after each tool call
+    sessionTracker.persist();
+    
     // @ts-ignore - args are validated by schema but TS doesn't know
     return await tool.handler(request.params.arguments);
 });
