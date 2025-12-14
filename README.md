@@ -1,103 +1,80 @@
-# memAI - AI Memory System
+# memAI
 
-**Never lose context again.** A persistent, queryable memory system for AI agents and development teams.
+Persistent memory for AI agents. SQLite-based, local-first, privacy-focused.
 
-[![CI](https://github.com/kraftyux/memai/workflows/CI/badge.svg)](https://github.com/kraftyux/memai/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org/)
-[![npm version](https://img.shields.io/npm/v/memai.svg)](https://www.npmjs.com/package/memai)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D16-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 
----
+## What it does
 
-## 🧠 What is Memai?
+memAI helps AI agents remember context across sessions. It stores decisions, progress, issues, and insights in a local SQLite database that agents can query and update.
 
-memAI is a **SQLite-based memory system** that enables AI agents to maintain persistent context, track decisions, and build knowledge over time. Think of it as your AI's workspace oriented long-term memory.
-
-### The Problem
-
-AI agents lose context between sessions. They forget:
-
-- What decisions were made and why
-- What problems were encountered
-- What patterns were discovered
-- What the current project state is
-
-### The Solution
-
-Memai provides:
-
-- 🧠 **Persistent Memory** - SQLite database for reliable storage
-- 🔍 **Semantic Search** - Find memories by meaning using local vector embeddings
-- 🤖 **MCP Server** - Native integration with Claude Desktop and other MCP clients
-- 📊 **Beautiful Dashboard** - Visual exploration in your browser
-- 📱 **CLI Tools** - Quick access from terminal
-- 🎯 **Decision Tracking** - Record choices with rationale
-- 📈 **Progress Monitoring** - Track phases and milestones
-- 🏷️ **Tag Organization** - Flexible categorization
-- 📄 **Export** - Markdown, JSON, or custom formats
-
----
-
-## 🚀 Quick Start
-
-### Installation
-
-**Option 1: Use in your project (NPM)**
+## Install
 
 ```bash
 npm install memai
 ```
 
-**Option 2: Run from source (GitHub)**
+## Quick Start
 
 ```bash
-git clone https://github.com/kraftyux/memai.git
-cd memai
-npm install
-npm run build
-```
-
-### Initialize
-
-```bash
+# Initialize database
 npx memai init
+
+# Launch dashboard
+npx memai dashboard
 ```
 
-### Record Your First Memory
+## Usage
 
-```typescript
+### API
+
+```javascript
 import Memai from 'memai';
 
 const memai = new Memai();
 
-await memai.record({
+// Record a memory
+memai.record({
   category: 'implementation',
-  phase: 'Setup',
-  action: 'Initialized project with Memai',
-  context: 'Setting up memory tracking for AI agent',
-  reasoning: 'Need persistent context across sessions',
-  outcome: 'Successfully integrated Memai',
-  tags: 'setup,initialization'
+  action: 'Added user authentication',
+  outcome: 'OAuth 2.0 working',
+  tags: 'auth,security'
 });
+
+// Record a decision
+memai.recordDecision({
+  decision: 'Use PostgreSQL',
+  rationale: 'Need ACID compliance',
+  alternatives: 'MongoDB, MySQL'
+});
+
+// Get recent memories
+const recent = memai.getRecentMemories(10);
+
+// Generate briefing
+const briefing = memai.generateBriefing({ since: Date.now() - 86400000 });
+
+memai.close();
 ```
 
-### Launch Dashboard
+### CLI
 
 ```bash
-npx memai dashboard
+memai stats              # Show statistics
+memai recent 20          # Recent memories
+memai search "auth"      # Search memories
+memai issues             # Active issues
+memai briefing 24        # Last 24h briefing
+memai export json out.json
 ```
 
-Opens at `http://localhost:3030` - UI for exploring memories!
+### MCP Server
 
----
+memAI includes an MCP server for Claude Desktop and other MCP clients.
 
-## 🤖 Model Context Protocol (MCP)
-
-memAI includes a built-in MCP server, allowing AI agents (like Claude) to directly interact with your memory database.
-
-### Configuration (Claude Desktop)
-
-Add this to your `claude_desktop_config.json`:
+Add to your MCP config:
 
 ```json
 {
@@ -106,336 +83,47 @@ Add this to your `claude_desktop_config.json`:
       "command": "node",
       "args": ["/path/to/memai/dist/src/mcp-server.js"],
       "env": {
-        "MEMAI_DB_PATH": "/path/to/your/.memai/memory.db"
+        "MEMAI_DB_PATH": "/path/to/.memai/memory.db"
       }
     }
   }
 }
 ```
 
-### Available Tools
+Available tools:
+- `start_session` - Begin a session with context
+- `record_memory` - Store memories
+- `record_decision` - Track decisions
+- `search_memories` - Query by phase
+- `create_checkpoint` - Mark milestones
+- `get_briefing` - Get status summary
+- `memory_pulse` - Check recording health
+- `finish_session` - End session with report
 
-- `record_memory`: Save context, actions, and outcomes.
-- `record_decision`: Track architectural choices.
-- `search_memories`: Semantic search for relevant context.
-- `create_checkpoint`: Mark project milestones.
-- `get_briefing`: Get a summary of recent activity with session metrics.
-- `start_session`: **(Recommended)** Start a session with context and instructions.
-- `finish_session`: **(Recommended)** End session, checkpoint, and export report.
-- `memory_pulse`: Check memory recording health and get suggestions.
+### AI Agent Integration
 
-### Streamlined Agent Workflow
+Include `memai.md` in your project for agent steering guidelines.
 
-1. **Start**: Agent calls `start_session` to get context and health metrics.
-2. **Work**: Agent records decisions and memories. The system tracks activity and provides nudges when recording lapses.
-3. **Check**: Agent can call `memory_pulse` to check recording health status (healthy/warning/critical).
-4. **Finish**: Agent calls `finish_session` to save progress.
+## Memory Categories
 
-### Memory Health & Nudges
+- `checkpoint` - Milestones
+- `decision` - Technical choices
+- `implementation` - Code changes
+- `issue` - Problems
+- `validation` - Test results
+- `insight` - Learnings
+- `user-interaction` - Feedback
 
-The MCP server automatically tracks session activity and provides contextual nudges when memory recording has lapsed:
+## Documentation
 
-- **Automatic nudges** appear on read-only tools (`search_memories`, `get_briefing`) when:
-  - More than 10 minutes have passed since the last recording
-  - More than 10 tool calls have been made with zero memories recorded
-- **Nudges are suppressed** if a memory was recorded within the last 5 minutes
-- **Health status** is reported as `healthy`, `warning`, or `critical` based on recording activity
+- [API Reference](docs/API.md)
+- [CLI Reference](docs/CLI.md)
+- [Examples](docs/EXAMPLES.md)
 
----
+## License
 
-## 📖 Core Concepts
+MIT - see [LICENSE](LICENSE)
 
-### Categories
+## Third-Party Licenses
 
-- **checkpoint** - Major milestones, phase completions
-- **decision** - Technical/architectural choices
-- **implementation** - Code changes, feature additions
-- **issue** - Problems encountered and resolutions
-- **validation** - Test results, quality checks
-- **insight** - Learned patterns, best practices
-- **user-interaction** - Approvals, feedback
-
-### Memory Structure
-
-```typescript
-interface Memory {
-  category: 'decision' | 'implementation' | 'issue' | ...;
-  phase?: string;
-  action: string;
-  context?: string;
-  reasoning?: string;
-  outcome?: string;
-  tags?: string;
-  embedding?: string; // Vector embedding for semantic search
-}
-```
-
----
-
-## 🎨 Dashboard Features
-
-- 📊 Real-time statistics
-- 🔍 Semantic & Keyword search
-- 🏷️ Multi-filter system
-- 📑 View switcher (Memories / Decisions / Issues)
-- 📄 Pagination (20 per page)
-- 🌓 Dark mode (automatic)
-- 📥 Export to Markdown
-- 📱 Responsive design
-
----
-
-## 🛠️ CLI Commands
-
-```bash
-# Show statistics
-memai stats
-
-# Recent memories
-memai recent 20
-
-# Search
-memai search "database decision"
-
-# Phase context
-memai phase "Architecture Design"
-
-# Active issues
-memai issues active
-
-# Export
-memai export markdown report.md
-
-# Generate briefing
-memai briefing 48
-```
-
----
-
-## 🤖 AI Agent Integration
-
-**For AI agents and autonomous systems**: Include the `memai.md` steering file in your project root, or specified steering file location within the workflow to enable automatic memory recording. This steering file provides guidelines for when and how to record memories during agentic work and it can be adjusted and optimized further.
-
-```bash
-# Download the steering file
-curl -O https://raw.githubusercontent.com/kraftyux/memai/main/memai.md
-
-# Or copy from the repository
-cp node_modules/memai/memai.md .
-```
-
-The steering file ensures AI agents:
-
-- Record all significant decisions and implementations
-- Track issues and resolutions automatically
-- Maintain context across sessions
-- Build a queryable knowledge base
-- Respond to memory health nudges when recording lapses
-
-### Memory Health Monitoring
-
-The MCP server tracks agent activity and provides proactive nudges:
-
-- **Session tracking**: Monitors tool calls, memory recordings, and time since last recording
-- **Health metrics**: Available via `get_briefing` and `memory_pulse` tools
-- **Automatic nudges**: Appended to read-only tool responses when recording has lapsed
-- **Health status**: `healthy` (active recording), `warning` (recording lapse detected), `critical` (significant lapse)
-
-See [AI Agent Integration Guide](memai.md) for complete details.
-
----
-
-## 📚 API Reference
-
-### Record Memory
-
-```javascript
-memai.record({
-  category: 'implementation',
-  phase: 'Feature Development',
-  action: 'Implemented user authentication',
-  context: 'Users need secure login',
-  reasoning: 'Security requirement from spec',
-  outcome: 'OAuth 2.0 integration complete',
-  tags: 'auth,security,oauth'
-});
-```
-
-### Record Decision
-
-```javascript
-memai.recordDecision({
-  decision: 'Use React over Vue',
-  rationale: 'Larger ecosystem, better TypeScript support',
-  alternatives: 'Vue 3, Svelte, Angular',
-  impact: 'Faster development, easier hiring',
-  reversible: true
-});
-```
-
-### Record Issue
-
-```javascript
-const issueId = memai.recordIssue({
-  severity: 'P1',
-  category: 'bug',
-  description: 'Login fails on Safari'
-});
-
-// Later, when resolved:
-memai.resolveIssue(issueId, 'Fixed cookie SameSite attribute');
-```
-
-### Create Checkpoint
-
-```javascript
-memai.createCheckpoint({
-  phase: 'MVP Development',
-  status: 'completed',
-  progressPercent: 100,
-  pendingActions: ['Deploy to staging', 'User testing'],
-  blockers: []
-});
-```
-
-### Query Memories
-
-```javascript
-// Recent memories
-const recent = memai.getRecentMemories(10);
-
-// Phase context
-const phaseMemories = memai.getPhaseContext('MVP Development');
-
-// Search by tag
-const authMemories = memai.searchByTag('authentication');
-
-// Generate briefing
-const briefing = memai.generateBriefing({
-  since: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
-  categories: ['checkpoint', 'decision'],
-  maxDepth: 3
-});
-```
-
----
-
-## 🔌 Integrations
-
-### Express.js
-
-```javascript
-import express from 'express';
-import Memai from 'memai';
-
-const app = express();
-const memai = new Memai();
-
-app.post('/api/memory', (req, res) => {
-  const id = memai.record(req.body);
-  res.json({ id, success: true });
-});
-
-app.get('/api/briefing', (req, res) => {
-  const briefing = memai.generateBriefing({
-    since: req.query.since,
-    categories: req.query.categories?.split(',')
-  });
-  res.json(briefing);
-});
-```
-
-### GitHub Actions
-
-```yaml
-name: Record Deployment
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm install memai
-      - run: |
-          node -e "
-          import Memai from 'memai';
-          const memai = new Memai();
-          memai.record({
-            category: 'checkpoint',
-            action: 'Deployed to production',
-            outcome: 'Deployment successful'
-          });
-          "
-```
-
----
-
-## 📊 Why Memai?
-
-### vs. Markdown Files
-
-| Feature | Markdown | Memai |
-|---------|----------|-------|
-| Queryable | ❌ grep | ✅ SQL |
-| Relational | ❌ manual | ✅ foreign keys |
-| Fast | ❌ O(n) | ✅ O(log n) |
-| Structured | ❌ freeform | ✅ schema |
-| Analytics | ❌ manual | ✅ built-in |
-| Visual | ❌ | ✅ dashboard |
-| Export | ✅ native | ✅ supported |
-
-### vs. Cloud Solutions
-
-| Feature | Cloud | Memai |
-|---------|-------|-------|
-| Privacy | ❌ external | ✅ local-only |
-| Cost | ❌ subscription | ✅ free |
-| Speed | ❌ network | ✅ instant |
-| Offline | ❌ | ✅ works offline |
-| Portable | ❌ | ✅ single file |
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
-## 📜 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-## 🌟 Show Your Support
-
-If memAI helps your project, consider giving it a ⭐️ on GitHub!
-
----
-
-## 📬 Links
-
-### Documentation
-
-- **[Documentation Hub](docs/README.md)** - Start here for all documentation
-- **[API Reference](docs/API.md)** - Complete API documentation
-- **[CLI Reference](docs/CLI.md)** - Command-line interface guide
-- **[Examples](docs/EXAMPLES.md)** - Practical usage examples
-
-### Community
-
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
-- **[Security Policy](SECURITY.md)** - Reporting vulnerabilities
-- **[Changelog](CHANGELOG.md)** - Version history
-- **[Issues](https://github.com/kraftyux/memai/issues)** - Bug reports and feature requests
-- **[Discussions](https://github.com/kraftyux/memai/discussions)** - Community discussions
-
----
-
-### Made with ❤️ in the EU, for the AI community
+See [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md) for attribution of dependencies.

@@ -12,7 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Memory Persistence Nudges**
   - Session tracker for monitoring AI agent session activity
   - Nudge handler for prompting memory persistence at optimal times
-  - Configurable nudge thresholds and timing
+  - Health status: healthy, warning, critical based on recording activity
+
+- **MCP Server Improvements**
+  - `memory_pulse` tool for checking recording health
+  - Session metrics in `get_briefing` responses
+  - Automatic nudges on read-only tools when recording lapses
 
 - **Testing Infrastructure**
   - Vitest configuration for unit and property-based testing
@@ -23,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated MCP server with improved tool handling
 - Enhanced schema with session tracking support
+- Simplified documentation
 
 ## [1.1.0] - 2025-11-21
 
