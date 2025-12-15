@@ -395,6 +395,19 @@ class Memai {
   }
 
   /**
+   * Get the last recorded memory
+   */
+  getLastMemory(): Memory | null {
+    if (!this.db) throw new Error('Database not initialized');
+    const stmt = this.db.prepare(`
+      SELECT * FROM memories 
+      ORDER BY timestamp DESC 
+      LIMIT 1
+    `);
+    return (stmt.get() as Memory) || null;
+  }
+
+  /**
    * Get phase context
    */
   getPhaseContext(phase: string): Memory[] {
@@ -670,24 +683,50 @@ class Memai {
   }
 
   /**
+   * Get all decisions
+   */
+  getDecisions(limit: number = 100): any[] {
+    if (!this.db) throw new Error('Database not initialized');
+    const stmt = this.db.prepare(`
+      SELECT id, timestamp, decision, rationale, alternatives, impact, reversible, memory_id
+      FROM decisions
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    return stmt.all(limit) as any[];
+  }
+
+  /**
    * Get statistics
    */
   getStats(): any {
     if (!this.db) throw new Error('Database not initialized');
     const totalMemories = (this.db.prepare('SELECT COUNT(*) as count FROM memories').get() as any).count;
-    const totalDecisions = (this.db.prepare('SELECT COUNT(*) as count FROM decisions').get() as any).count;
-    const totalIssues = (this.db.prepare('SELECT COUNT(*) as count FROM issues').get() as any).count;
+    
+    // Count decisions from both the decisions table AND memories with category 'decision'
+    const decisionsTableCount = (this.db.prepare('SELECT COUNT(*) as count FROM decisions').get() as any).count;
+    const decisionMemoriesCount = (this.db.prepare("SELECT COUNT(*) as count FROM memories WHERE category = 'decision'").get() as any).count;
+    const totalDecisions = decisionsTableCount + decisionMemoriesCount;
+    
+    // Count implementations from memories table
+    const totalImplementations = (this.db.prepare("SELECT COUNT(*) as count FROM memories WHERE category = 'implementation'").get() as any).count;
+    
+    // Count issues from both the issues table AND memories with category 'issue'
+    const issuesTableCount = (this.db.prepare('SELECT COUNT(*) as count FROM issues').get() as any).count;
+    const issueMemoriesCount = (this.db.prepare("SELECT COUNT(*) as count FROM memories WHERE category = 'issue'").get() as any).count;
     const resolvedIssues = (this.db.prepare('SELECT COUNT(*) as count FROM issues WHERE resolved_at IS NOT NULL').get() as any).count;
-    const avgResolveTime = (this.db.prepare('SELECT AVG(time_to_resolve) as avg FROM issues WHERE time_to_resolve IS NOT NULL').get() as any).avg;
+    
+    // Active issues = issues table unresolved + all issue-category memories (assumed active)
+    const activeIssuesFromTable = issuesTableCount - resolvedIssues;
+    const activeIssues = activeIssuesFromTable + issueMemoriesCount;
 
     return {
       totalMemories,
       totalDecisions,
-      totalIssues,
+      totalImplementations,
+      totalIssues: issuesTableCount + issueMemoriesCount,
       resolvedIssues,
-      activeIssues: totalIssues - resolvedIssues,
-      avgResolveTimeMs: avgResolveTime || 0,
-      avgResolveTimeHours: avgResolveTime ? (avgResolveTime / (1000 * 60 * 60)).toFixed(2) : 0
+      activeIssues,
     };
   }
 
