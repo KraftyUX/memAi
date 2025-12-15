@@ -17,19 +17,37 @@ import Memai from './memai.js';
 const portArg = process.argv[2];
 const PORT = (portArg && !isNaN(parseInt(portArg))) ? parseInt(portArg) : 3030;
 
-// Use process.cwd() to find the dashboard directory relative to where the script is run, 
-// or assume a standard structure if installed as a package.
-// Since we are in src/, dashboard is in ../dashboard
-const DASHBOARD_PATH = join(process.cwd(), 'dashboard', 'index.html');
+// Dashboard paths - prefer built React app (dashboard/dist), fallback to legacy HTML
+const DASHBOARD_DIST_DIR = join(process.cwd(), 'dashboard', 'dist');
+const DASHBOARD_LEGACY_PATH = join(process.cwd(), 'dashboard', 'index.html');
+
+// Determine which dashboard to serve
+const useReactDashboard = existsSync(join(DASHBOARD_DIST_DIR, 'index.html'));
+const DASHBOARD_DIR = useReactDashboard ? DASHBOARD_DIST_DIR : dirname(DASHBOARD_LEGACY_PATH);
+const DASHBOARD_INDEX = useReactDashboard 
+  ? join(DASHBOARD_DIST_DIR, 'index.html') 
+  : DASHBOARD_LEGACY_PATH;
+
 const DB_PATH = process.env.MEMAI_DB_PATH || join(process.cwd(), '.memai', 'memory.db');
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
   '.css': 'text/css',
   '.json': 'application/json',
   '.db': 'application/x-sqlite3',
   '.md': 'text/markdown',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject',
 };
 
 // Initialize memAI
@@ -70,27 +88,31 @@ const server = createServer((req: IncomingMessage, res: ServerResponse) => {
   // Parse URL - serve dashboard for root, otherwise look for static files
   let filePath: string;
   if (req.url === '/' || !req.url) {
-    filePath = DASHBOARD_PATH;
+    filePath = DASHBOARD_INDEX;
   } else {
     // Remove leading slash and resolve relative to dashboard directory
     const requestPath = req.url.substring(1);
-    filePath = join(dirname(DASHBOARD_PATH), requestPath);
+    filePath = join(DASHBOARD_DIR, requestPath);
   }
 
   // Security: prevent directory traversal
-  const dashboardDir = dirname(DASHBOARD_PATH);
   const resolvedPath = filePath;
-  if (!resolvedPath.startsWith(dashboardDir)) {
+  if (!resolvedPath.startsWith(DASHBOARD_DIR)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
   }
 
-  // Check if file exists
+  // Check if file exists - for SPA routing, serve index.html for non-existent paths
   if (!existsSync(filePath)) {
-    res.writeHead(404);
-    res.end('File not found');
-    return;
+    // SPA fallback: serve index.html for client-side routing (only for React dashboard)
+    if (useReactDashboard && !extname(req.url || '')) {
+      filePath = DASHBOARD_INDEX;
+    } else {
+      res.writeHead(404);
+      res.end('File not found');
+      return;
+    }
   }
 
   // Determine content type
@@ -116,6 +138,11 @@ function handleApiRequest(req: IncomingMessage, res: ServerResponse) {
       const memories = memai.getRecentMemories(1000);
       res.writeHead(200);
       res.end(JSON.stringify(memories));
+    } else if (req.url === '/api/decisions') {
+      // Get all decisions
+      const decisions = memai.getDecisions(1000);
+      res.writeHead(200);
+      res.end(JSON.stringify(decisions));
     } else if (req.url === '/api/stats') {
       // Get statistics
       const stats = memai.getStats();
@@ -151,6 +178,7 @@ server.listen(PORT, () => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📡 Server running at: http://localhost:${PORT}`);
   console.log(`📂 Database: ${DB_PATH}`);
+  console.log(`🎨 Dashboard: ${useReactDashboard ? 'React (dashboard/dist)' : 'Legacy (dashboard/index.html)'}`);
   console.log('');
   console.log('🌐 Open in browser:');
   console.log(`   http://localhost:${PORT}`);

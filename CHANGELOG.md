@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-12-15
+
+### Added
+
+- **Memory Recall Tool**
+  - `memai_recall` MCP tool to retrieve the last recorded memory
+  - Reinforces agent context before starting tasks
+  - Shows action, category, phase, time since recording, and full context
+
+- **Dashboard v2 Enhancements**
+  - Animated MemaiLogo component with neural network design
+  - Breadcrumb navigation using shadcn/ui components
+  - OKLCH color theme with orange/coral primary colors
+  - JetBrains Mono font for consistent monospace styling
+  - Implementations stat replacing Avg Resolve Time
+  - Stats now count from both dedicated tables and memories by category
+
+- **API Improvements**
+  - `getLastMemory()` method in Memai class
+  - `getDecisions()` method for fetching all decisions
+  - `/api/decisions` endpoint for dashboard
+  - Stats endpoint counts decisions/issues from both tables and memory categories
+
+### Changed
+
+- Updated steering documentation with Task Recall workflow
+- Dashboard header redesigned with logo and cleaner layout
+- Theme toggle now uses CSS variables with OKLCH colors
+- Removed header gradient background for cleaner look
+
+### Fixed
+
+- Decisions not displaying when filtered in dashboard
+- Stats showing zeros for decisions, issues, and implementations
+- Theme switcher not properly toggling dark/light mode
+
 ## [1.2.0] - 2025-12-14
 
 ### Added

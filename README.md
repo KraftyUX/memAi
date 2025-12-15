@@ -92,6 +92,7 @@ Add to your MCP config:
 
 Available tools:
 - `start_session` - Begin a session with context
+- `memai_recall` - Recall last memory before tasks
 - `record_memory` - Store memories
 - `record_decision` - Track decisions
 - `search_memories` - Query by phase

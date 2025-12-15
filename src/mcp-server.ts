@@ -332,6 +332,60 @@ const TOOLS: Record<string, ToolDefinition> = {
         },
     },
 
+    memai_recall: {
+        name: "memai_recall",
+        description: "Recall the last recorded memory. Use this before starting a task to reinforce context.",
+        schema: z.object({}),
+        handler: async (_args: any) => {
+            const lastMemory = memai.getLastMemory();
+            
+            if (!lastMemory) {
+                return {
+                    content: [
+                        {
+                            type: "text",
+                            text: "📭 No memories recorded yet. Start fresh!",
+                        },
+                    ],
+                };
+            }
+            
+            const timeSince = Date.now() - lastMemory.timestamp!;
+            const timeSinceStr = formatDurationMs(timeSince);
+            
+            const parts = [
+                `# 🧠 Last Memory Recall`,
+                ``,
+                `**Action**: ${lastMemory.action}`,
+                `**Category**: ${lastMemory.category}`,
+                `**Phase**: ${lastMemory.phase || 'N/A'}`,
+                `**Recorded**: ${timeSinceStr} ago`,
+            ];
+            
+            if (lastMemory.context) {
+                parts.push(``, `**Context**: ${lastMemory.context}`);
+            }
+            if (lastMemory.reasoning) {
+                parts.push(`**Reasoning**: ${lastMemory.reasoning}`);
+            }
+            if (lastMemory.outcome) {
+                parts.push(`**Outcome**: ${lastMemory.outcome}`);
+            }
+            if (lastMemory.tags) {
+                parts.push(`**Tags**: ${lastMemory.tags}`);
+            }
+            
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: parts.join('\n'),
+                    },
+                ],
+            };
+        },
+    },
+
     finish_session: {
         name: "finish_session",
         description: "End the current session, create a checkpoint, and export a report.",
