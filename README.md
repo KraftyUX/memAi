@@ -10,6 +10,14 @@ Persistent memory for AI agents. SQLite-based, local-first, privacy-focused.
 
 memAI helps AI agents remember context across sessions. It stores decisions, progress, issues, and insights in a local SQLite database that agents can query and update.
 
+## Screenshots
+
+### Dashboard
+![memAI Dashboard](docs/screenshots/memai_dashboard.png)
+
+### MCP Tool Integration (Kiro IDE)
+![MCP Tool - Record Memory](docs/screenshots/called_MCP_tool_record_memory_KIRO_IDE.png)
+
 ## Install
 
 ```bash
