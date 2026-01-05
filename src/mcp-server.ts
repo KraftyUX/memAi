@@ -172,29 +172,60 @@ const TOOLS: Record<string, ToolDefinition> = {
         description: "Get a briefing of recent activities and status.",
         schema: z.object({
             hours: z.number().optional().default(24).describe("Hours to look back"),
+            limit: z.number().optional().default(100).describe("Maximum memories to return (1-100)"),
+            compact: z.boolean().optional().default(true).describe("Return summary only, no memories array (default: true for context efficiency)"),
         }),
         handler: async (args: any) => {
+            // Clamp limit to valid range [1, 100] (Requirements 2.2, 2.3, 2.4)
+            const rawLimit = args.limit ?? 100;
+            const clampedLimit = Math.max(1, Math.min(100, rawLimit));
+            
+            // Calculate maxDepth from limit (limit = maxDepth * 10)
+            const maxDepth = Math.ceil(clampedLimit / 10);
+            
             const since = Date.now() - (args.hours * 60 * 60 * 1000);
-            const briefing = memai.generateBriefing({ since, maxDepth: 50 });
+            const briefing = memai.generateBriefing({ since, maxDepth });
             
             // Get session health metrics (Requirements 2.1)
             const metrics = sessionTracker.getHealthMetrics();
             
-            // Build response with session metrics
-            const briefingData: any = {
-                ...briefing,
-                sessionHealth: {
-                    sessionDuration: formatDurationMs(metrics.sessionDurationMs),
-                    toolCallCount: metrics.toolCallCount,
-                    memoryCount: metrics.memoryCount,
-                    healthStatus: metrics.status,
-                },
+            const sessionHealth = {
+                sessionDuration: formatDurationMs(metrics.sessionDurationMs),
+                toolCallCount: metrics.toolCallCount,
+                memoryCount: metrics.memoryCount,
+                healthStatus: metrics.status,
             };
             
             // Add warning when memoryCount=0 and toolCallCount>5 (Requirements 2.2)
             if (metrics.memoryCount === 0 && metrics.toolCallCount > 5) {
-                briefingData.sessionHealth.warning = `⚠️ No memories recorded despite ${metrics.toolCallCount} tool calls. Consider recording your progress and decisions.`;
+                (sessionHealth as any).warning = `⚠️ No memories recorded despite ${metrics.toolCallCount} tool calls. Consider recording your progress and decisions.`;
             }
+            
+            // Compact mode: return summary only (Requirements 3.1, 3.2)
+            if (args.compact) {
+                const compactResponse = {
+                    content: [
+                        {
+                            type: "text",
+                            text: JSON.stringify({
+                                summary: briefing.summary,
+                                activeIssuesCount: briefing.activeIssues.length,
+                                sessionHealth,
+                            }, null, 2),
+                        },
+                    ],
+                };
+                return nudgeHandler.wrapResponse(compactResponse);
+            }
+            
+            // Full mode: include memories (limited to clampedLimit)
+            const limitedMemories = briefing.memories.slice(0, clampedLimit);
+            
+            const briefingData: any = {
+                ...briefing,
+                memories: limitedMemories,
+                sessionHealth,
+            };
             
             const response = {
                 content: [
@@ -226,7 +257,7 @@ const TOOLS: Record<string, ToolDefinition> = {
             sessionTracker.persist();
             
             const since = Date.now() - (24 * 60 * 60 * 1000);
-            const briefing = memai.generateBriefing({ since, maxDepth: 50 });
+            const briefing = memai.generateBriefing({ since, maxDepth: 10 });
 
             const summaryParts = [
                 `# 🚀 Session Started`,

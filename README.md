@@ -15,7 +15,7 @@ memAI helps AI agents remember context across sessions. It stores decisions, pro
 ### Dashboard
 ![memAI Dashboard](docs/screenshots/memai_dashboard.png)
 
-### MCP Tool Integration (Kiro IDE)
+### MCP Tool Integration in Action (Kiro IDE)
 ![MCP Tool - Record Memory](docs/screenshots/called_MCP_tool_record_memory_KIRO_IDE.png)
 
 ## Install

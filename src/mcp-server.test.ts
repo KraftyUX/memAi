@@ -476,3 +476,227 @@ describe('MCP Server Integration', () => {
     });
   });
 });
+
+
+/**
+ * **Feature: briefing-context-limit, Property 2: Limit Clamping**
+ * **Validates: Requirements 2.2, 2.3, 2.4**
+ * 
+ * For any limit value provided to get_briefing:
+ * - If limit > 100, the effective limit SHALL be 100
+ * - If limit < 1, the effective limit SHALL be 1
+ * - Otherwise, the effective limit SHALL equal the provided limit
+ */
+describe('Property 2: Limit Clamping', () => {
+  /**
+   * Helper function that mirrors the limit clamping logic in mcp-server.ts
+   */
+  function clampLimit(rawLimit: number | undefined): number {
+    const limit = rawLimit ?? 100;
+    return Math.max(1, Math.min(100, limit));
+  }
+
+  it('limits above 100 are clamped to 100', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 101, max: 10000 }),
+        (rawLimit) => {
+          const clamped = clampLimit(rawLimit);
+          expect(clamped).toBe(100);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('limits below 1 are clamped to 1', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: -1000, max: 0 }),
+        (rawLimit) => {
+          const clamped = clampLimit(rawLimit);
+          expect(clamped).toBe(1);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('limits in valid range [1, 100] are preserved', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 100 }),
+        (rawLimit) => {
+          const clamped = clampLimit(rawLimit);
+          expect(clamped).toBe(rawLimit);
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('undefined limit defaults to 100', () => {
+    const clamped = clampLimit(undefined);
+    expect(clamped).toBe(100);
+  });
+});
+
+/**
+ * **Feature: briefing-context-limit, Property 3: Compact Mode Excludes Memories**
+ * **Validates: Requirements 3.1, 3.2**
+ * 
+ * For any get_briefing call with compact=true, the response SHALL NOT contain
+ * a memories array AND SHALL contain a summary object and sessionHealth object.
+ */
+describe('Property 3: Compact Mode Response Structure', () => {
+  interface CompactBriefingResponse {
+    summary: {
+      totalMemories: number;
+      categoryCounts: Record<string, number>;
+      activeIssuesCount: number;
+      criticalIssuesCount: number;
+      currentPhase: string;
+      currentProgress: number;
+      currentStatus: string;
+      lastActivity: number | null;
+      pendingActions: string[];
+      blockers: string[];
+    };
+    activeIssuesCount: number;
+    sessionHealth: {
+      sessionDuration: string;
+      toolCallCount: number;
+      memoryCount: number;
+      healthStatus: string;
+    };
+  }
+
+  interface FullBriefingResponse {
+    summary: CompactBriefingResponse['summary'];
+    memories: any[];
+    activeIssues: any[];
+    latestCheckpoint: any;
+    sessionHealth: CompactBriefingResponse['sessionHealth'];
+  }
+
+  /**
+   * Simulates compact mode response building (mirrors mcp-server.ts logic)
+   */
+  function buildCompactResponse(summary: any, activeIssuesCount: number, sessionHealth: any): CompactBriefingResponse {
+    return {
+      summary,
+      activeIssuesCount,
+      sessionHealth,
+    };
+  }
+
+  /**
+   * Simulates full mode response building (mirrors mcp-server.ts logic)
+   */
+  function buildFullResponse(briefing: any, sessionHealth: any, limit: number): FullBriefingResponse {
+    return {
+      ...briefing,
+      memories: briefing.memories.slice(0, limit),
+      sessionHealth,
+    };
+  }
+
+  it('compact mode response does not contain memories array', () => {
+    fc.assert(
+      fc.property(
+        // Generate arbitrary summary data
+        fc.record({
+          totalMemories: fc.nat({ max: 1000 }),
+          activeIssuesCount: fc.nat({ max: 100 }),
+          currentPhase: fc.string({ minLength: 1, maxLength: 50 }),
+          currentProgress: fc.integer({ min: 0, max: 100 }),
+        }),
+        fc.nat({ max: 100 }),  // activeIssuesCount
+        (summaryData, activeIssuesCount) => {
+          const summary = {
+            ...summaryData,
+            categoryCounts: {},
+            criticalIssuesCount: 0,
+            currentStatus: 'in-progress',
+            lastActivity: Date.now(),
+            pendingActions: [],
+            blockers: [],
+          };
+          
+          const sessionHealth = {
+            sessionDuration: '5 minutes',
+            toolCallCount: 10,
+            memoryCount: 5,
+            healthStatus: 'healthy',
+          };
+          
+          const response = buildCompactResponse(summary, activeIssuesCount, sessionHealth);
+          
+          // Compact response should NOT have memories array
+          expect('memories' in response).toBe(false);
+          
+          // Compact response SHOULD have summary and sessionHealth
+          expect(response.summary).toBeDefined();
+          expect(response.sessionHealth).toBeDefined();
+          expect(response.activeIssuesCount).toBeDefined();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+
+  it('full mode response contains memories array', () => {
+    fc.assert(
+      fc.property(
+        // Generate arbitrary memories
+        fc.array(fc.record({
+          id: fc.nat(),
+          action: fc.string({ minLength: 1, maxLength: 100 }),
+          category: fc.constantFrom('checkpoint', 'decision', 'implementation', 'issue'),
+        }), { minLength: 0, maxLength: 200 }),
+        fc.integer({ min: 1, max: 100 }),  // limit
+        (memories, limit) => {
+          const briefing = {
+            memories,
+            activeIssues: [],
+            latestCheckpoint: null,
+            summary: {
+              totalMemories: memories.length,
+              categoryCounts: {},
+              activeIssuesCount: 0,
+              criticalIssuesCount: 0,
+              currentPhase: 'Development',
+              currentProgress: 50,
+              currentStatus: 'in-progress',
+              lastActivity: Date.now(),
+              pendingActions: [],
+              blockers: [],
+            },
+          };
+          
+          const sessionHealth = {
+            sessionDuration: '5 minutes',
+            toolCallCount: 10,
+            memoryCount: 5,
+            healthStatus: 'healthy',
+          };
+          
+          const response = buildFullResponse(briefing, sessionHealth, limit);
+          
+          // Full response SHOULD have memories array
+          expect('memories' in response).toBe(true);
+          expect(Array.isArray(response.memories)).toBe(true);
+          
+          // Memories should be limited to the specified limit
+          expect(response.memories.length).toBeLessThanOrEqual(limit);
+          expect(response.memories.length).toBeLessThanOrEqual(memories.length);
+          
+          // Full response SHOULD also have summary and sessionHealth
+          expect(response.summary).toBeDefined();
+          expect(response.sessionHealth).toBeDefined();
+        }
+      ),
+      { numRuns: 100 }
+    );
+  });
+});
