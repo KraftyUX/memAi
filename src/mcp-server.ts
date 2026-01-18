@@ -179,28 +179,28 @@ const TOOLS: Record<string, ToolDefinition> = {
             // Clamp limit to valid range [1, 100] (Requirements 2.2, 2.3, 2.4)
             const rawLimit = args.limit ?? 100;
             const clampedLimit = Math.max(1, Math.min(100, rawLimit));
-            
+
             // Calculate maxDepth from limit (limit = maxDepth * 10)
             const maxDepth = Math.ceil(clampedLimit / 10);
-            
+
             const since = Date.now() - (args.hours * 60 * 60 * 1000);
             const briefing = memai.generateBriefing({ since, maxDepth });
-            
+
             // Get session health metrics (Requirements 2.1)
             const metrics = sessionTracker.getHealthMetrics();
-            
+
             const sessionHealth = {
                 sessionDuration: formatDurationMs(metrics.sessionDurationMs),
                 toolCallCount: metrics.toolCallCount,
                 memoryCount: metrics.memoryCount,
                 healthStatus: metrics.status,
             };
-            
+
             // Add warning when memoryCount=0 and toolCallCount>5 (Requirements 2.2)
             if (metrics.memoryCount === 0 && metrics.toolCallCount > 5) {
                 (sessionHealth as any).warning = `⚠️ No memories recorded despite ${metrics.toolCallCount} tool calls. Consider recording your progress and decisions.`;
             }
-            
+
             // Compact mode: return summary only (Requirements 3.1, 3.2)
             if (args.compact) {
                 const compactResponse = {
@@ -217,16 +217,16 @@ const TOOLS: Record<string, ToolDefinition> = {
                 };
                 return nudgeHandler.wrapResponse(compactResponse);
             }
-            
+
             // Full mode: include memories (limited to clampedLimit)
             const limitedMemories = briefing.memories.slice(0, clampedLimit);
-            
+
             const briefingData: any = {
                 ...briefing,
                 memories: limitedMemories,
                 sessionHealth,
             };
-            
+
             const response = {
                 content: [
                     {
@@ -235,7 +235,7 @@ const TOOLS: Record<string, ToolDefinition> = {
                     },
                 ],
             };
-            
+
             // Wrap response with nudge if conditions are met (Requirements 3.1, 3.2, 3.3)
             return nudgeHandler.wrapResponse(response);
         },
@@ -251,11 +251,11 @@ const TOOLS: Record<string, ToolDefinition> = {
             // Get health metrics from any prior session activity before initializing (Requirements 2.3)
             const priorMetrics = sessionTracker.getHealthMetrics();
             const hadPriorActivity = priorMetrics.toolCallCount > 0 || priorMetrics.memoryCount > 0;
-            
+
             // Initialize fresh session (Requirements 1.1)
             sessionTracker.initialize();
             sessionTracker.persist();
-            
+
             const since = Date.now() - (24 * 60 * 60 * 1000);
             const briefing = memai.generateBriefing({ since, maxDepth: 10 });
 
@@ -268,7 +268,7 @@ const TOOLS: Record<string, ToolDefinition> = {
                 `- Progress: ${briefing.summary.currentProgress}%`,
                 `- Active Issues: ${briefing.summary.activeIssuesCount}`,
             ];
-            
+
             // Include prior session health metrics if there was activity (Requirements 2.3)
             if (hadPriorActivity) {
                 summaryParts.push(
@@ -280,7 +280,7 @@ const TOOLS: Record<string, ToolDefinition> = {
                     `- Health Status: ${priorMetrics.status}`
                 );
             }
-            
+
             summaryParts.push(
                 ``,
                 `## 📋 Pending Actions`,
@@ -313,7 +313,7 @@ const TOOLS: Record<string, ToolDefinition> = {
         schema: z.object({}),
         handler: async (_args: any) => {
             const metrics = sessionTracker.getHealthMetrics();
-            
+
             // Build response with required fields (Requirements 4.1, 4.3)
             const response: {
                 sessionDuration: string;
@@ -327,12 +327,12 @@ const TOOLS: Record<string, ToolDefinition> = {
                 sessionDuration: formatDurationMs(metrics.sessionDurationMs),
                 memoryCount: metrics.memoryCount,
                 toolCallCount: metrics.toolCallCount,
-                timeSinceLastRecording: metrics.timeSinceLastRecording !== null 
+                timeSinceLastRecording: metrics.timeSinceLastRecording !== null
                     ? formatDurationMs(metrics.timeSinceLastRecording)
                     : null,
                 healthStatus: metrics.status,
             };
-            
+
             // Include suggestions when status is warning or critical (Requirements 4.2)
             if (metrics.status === 'warning' || metrics.status === 'critical') {
                 response.suggestions = [
@@ -342,7 +342,7 @@ const TOOLS: Record<string, ToolDefinition> = {
                     'insight - Capture learnings or observations',
                 ];
             }
-            
+
             // Include guidance when status is critical (Requirements 4.4)
             if (metrics.status === 'critical') {
                 response.guidance = '⚠️ Memory recording has lapsed significantly. Consider:\n' +
@@ -351,7 +351,7 @@ const TOOLS: Record<string, ToolDefinition> = {
                     '3. Documenting any issues or blockers encountered\n' +
                     '4. Creating a checkpoint if switching contexts';
             }
-            
+
             return {
                 content: [
                     {
@@ -369,7 +369,7 @@ const TOOLS: Record<string, ToolDefinition> = {
         schema: z.object({}),
         handler: async (_args: any) => {
             const lastMemory = memai.getLastMemory();
-            
+
             if (!lastMemory) {
                 return {
                     content: [
@@ -380,10 +380,10 @@ const TOOLS: Record<string, ToolDefinition> = {
                     ],
                 };
             }
-            
+
             const timeSince = Date.now() - lastMemory.timestamp!;
             const timeSinceStr = formatDurationMs(timeSince);
-            
+
             const parts = [
                 `# 🧠 Last Memory Recall`,
                 ``,
@@ -392,7 +392,7 @@ const TOOLS: Record<string, ToolDefinition> = {
                 `**Phase**: ${lastMemory.phase || 'N/A'}`,
                 `**Recorded**: ${timeSinceStr} ago`,
             ];
-            
+
             if (lastMemory.context) {
                 parts.push(``, `**Context**: ${lastMemory.context}`);
             }
@@ -405,7 +405,7 @@ const TOOLS: Record<string, ToolDefinition> = {
             if (lastMemory.tags) {
                 parts.push(`**Tags**: ${lastMemory.tags}`);
             }
-            
+
             return {
                 content: [
                     {
@@ -430,7 +430,7 @@ const TOOLS: Record<string, ToolDefinition> = {
         handler: async (args: any) => {
             // Get final session metrics before reset
             const finalMetrics = sessionTracker.getHealthMetrics();
-            
+
             // 1. Create Checkpoint
             const checkpointId = memai.createCheckpoint({
                 phase: args.phase,
@@ -491,18 +491,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (!tool) {
         throw new Error("Tool not found");
     }
-    
+
     // Increment tool call counter for session tracking (Requirements 1.2)
     sessionTracker.incrementToolCall();
-    
+
     // Track memory recordings (Requirements 1.3)
     if (request.params.name === 'record_memory' || request.params.name === 'record_decision') {
         sessionTracker.recordMemory();
     }
-    
+
     // Persist session state after each tool call
     sessionTracker.persist();
-    
+
     // @ts-ignore - args are validated by schema but TS doesn't know
     return await tool.handler(request.params.arguments);
 });
@@ -511,53 +511,48 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
  * Helper to convert Zod schema to JSON Schema
  */
 function zodToJsonSchema(schema: z.ZodObject<any>): any {
-    // Simple conversion for basic types used here
-    // For a production app, use 'zod-to-json-schema' package
-    // This is a simplified manual conversion to avoid extra dependency for now
-
     const shape = schema.shape;
     const properties: Record<string, any> = {};
     const required: string[] = [];
 
     for (const [key, value] of Object.entries(shape)) {
-        const zodValue = value as any;
-        let type = 'string';
-        let description = zodValue.description;
-        let enumValues = undefined;
+        let current = value as any;
+        let isOptional = false;
 
-        if (zodValue instanceof z.ZodString) type = 'string';
-        if (zodValue instanceof z.ZodNumber) type = 'number';
-        if (zodValue instanceof z.ZodBoolean) type = 'boolean';
-        if (zodValue instanceof z.ZodArray) type = 'array';
-        if (zodValue instanceof z.ZodEnum) {
-            type = 'string';
-            enumValues = (zodValue as any)._def.values;
+        // Unwrap ZodOptional and ZodDefault to find the base type
+        while (current instanceof z.ZodOptional || current instanceof z.ZodDefault) {
+            if (current instanceof z.ZodOptional) isOptional = true;
+            current = current._def.innerType;
         }
-        if (zodValue instanceof z.ZodOptional) {
-            // Unwrap optional
-            const inner = zodValue._def.innerType;
-            if (inner instanceof z.ZodString) type = 'string';
-            if (inner instanceof z.ZodNumber) type = 'number';
-            if (inner instanceof z.ZodBoolean) type = 'boolean';
-            if (inner instanceof z.ZodArray) type = 'array';
-            if (inner instanceof z.ZodEnum) {
-                type = 'string';
-                enumValues = (inner as any)._def.values;
-            }
-            if (inner instanceof z.ZodDefault) {
-                const defInner = (inner as any)._def.innerType;
-                if (defInner instanceof z.ZodString) type = 'string';
-                if (defInner instanceof z.ZodNumber) type = 'number';
-                if (defInner instanceof z.ZodBoolean) type = 'boolean';
-            }
-        } else {
+
+        if (!isOptional) {
             required.push(key);
+        }
+
+        let type = 'string';
+        let enumValues = undefined;
+        let items = undefined;
+
+        if (current instanceof z.ZodString) type = 'string';
+        else if (current instanceof z.ZodNumber) type = 'number';
+        else if (current instanceof z.ZodBoolean) type = 'boolean';
+        else if (current instanceof z.ZodEnum) {
+            type = 'string';
+            enumValues = (current as any).options;
+        } else if (current instanceof z.ZodArray) {
+            type = 'array';
+            const innerType = (current as any)._def.type;
+            if (innerType instanceof z.ZodString) items = { type: 'string' };
+            else if (innerType instanceof z.ZodNumber) items = { type: 'number' };
+            else if (innerType instanceof z.ZodBoolean) items = { type: 'boolean' };
+            else items = { type: 'string' }; // fallback
         }
 
         properties[key] = {
             type,
-            description,
+            description: (value as any).description,
             ...(enumValues ? { enum: enumValues } : {}),
+            ...(items ? { items } : {}),
         };
     }
 
