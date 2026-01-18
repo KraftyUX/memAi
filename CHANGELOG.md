@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-01-18
+
+### Fixed
+
+- **MCP Server**
+  - JSON schema generation for array items
+  - Handle `ZodEnum` types within `ZodDefault` wrappers
+
+## [1.3.1] - 2026-01-05
+
+### Fixed
+
+- Dashboard images overflow prevent
+- MCP server compatibility fixes
+
 ## [1.3.0] - 2025-12-15
 
 ### Added
