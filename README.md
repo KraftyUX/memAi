@@ -109,7 +109,7 @@ Available tools:
 - `memory_pulse` - Check recording health
 - `finish_session` - End session with report
 
-### AI Agent Integration
+### Agent Integration
 
 Include `memai.md` in your project for agent steering guidelines.
 
